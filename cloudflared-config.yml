@@ -1,0 +1,7 @@
+tunnel: bd2ca4ad-70db-4647-9c87-50346e1827ae
+credentials-file: /Users/mugen/.cloudflared/bd2ca4ad-70db-4647-9c87-50346e1827ae.json
+
+ingress:
+  - hostname: desc-elaborator.alcaria.dev
+    service: http://localhost:3030
+  - service: http_status:404
