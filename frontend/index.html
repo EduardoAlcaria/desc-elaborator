@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desc Elaborator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #888;
+      margin-bottom: 40px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 780px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 14px 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      color: #e8e8e8;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 140px;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      line-height: 1.6;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #555;
+    }
+
+    textarea:disabled {
+      opacity: 0.5;
+    }
+
+    button {
+      align-self: flex-end;
+      padding: 12px 32px;
+      background: #fff;
+      color: #0f0f0f;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    button:hover { background: #ddd; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .result-box {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      min-height: 140px;
+      color: #e8e8e8;
+    }
+
+    .result-box.placeholder { color: #444; }
+
+    .status {
+      font-size: 0.82rem;
+      color: #888;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .status.error { color: #e05555; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #555;
+      border-top-color: #aaa;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .copy-btn {
+      align-self: flex-end;
+      padding: 6px 16px;
+      background: transparent;
+      color: #666;
+      border: 1px solid #333;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .copy-btn:hover { color: #aaa; border-color: #555; background: transparent; }
+  </style>
+</head>
+<body>
+  <h1>Desc Elaborator</h1>
+  <p class="subtitle">Paste a rough description — get a polished one.</p>
+
+  <div class="container">
+    <div class="panel">
+      <label>Your description</label>
+      <textarea id="input" placeholder="e.g. a tool that helps devs write better commit messages using AI"></textarea>
+      <button id="elaborateBtn" onclick="elaborate()">Elaborate</button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="panel" id="outputPanel" style="display:none">
+      <label>Elaborated</label>
+      <div class="result-box" id="output"></div>
+      <button class="copy-btn" onclick="copyResult()">Copy</button>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+
+    async function elaborate() {
+      const input = document.getElementById('input');
+      const btn = document.getElementById('elaborateBtn');
+      const status = document.getElementById('status');
+      const outputPanel = document.getElementById('outputPanel');
+      const output = document.getElementById('output');
+
+      const text = input.value.trim();
+      if (!text) return;
+
+      btn.disabled = true;
+      input.disabled = true;
+      status.className = 'status';
+      status.innerHTML = '<span class="spinner"></span>Elaborating…';
+      outputPanel.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API}/elaborate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: text }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        output.textContent = data.result;
+        outputPanel.style.display = 'flex';
+        status.textContent = '';
+      } catch (e) {
+        status.className = 'status error';
+        status.textContent = `Error: ${e.message}`;
+      } finally {
+        btn.disabled = false;
+        input.disabled = false;
+      }
+    }
+
+    async function copyResult() {
+      const text = document.getElementById('output').textContent;
+      await navigator.clipboard.writeText(text);
+      const btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    }
+
+    document.getElementById('input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) elaborate();
+    });
+  </script>
+</body>
+</html>
