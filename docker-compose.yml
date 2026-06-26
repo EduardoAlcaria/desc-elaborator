@@ -14,6 +14,8 @@ services:
         limits:
           memory: 4g
     restart: unless-stopped
+    profiles:
+      - docker-ollama
 
   backend:
     build:
@@ -22,14 +24,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      OLLAMA_URL: http://ollama:11434
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
     deploy:
       resources:
         limits:
           memory: 128m
-    depends_on:
-      - ollama
     restart: unless-stopped
 
   tunnel:
